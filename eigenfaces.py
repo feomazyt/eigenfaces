@@ -76,43 +76,13 @@ def train_model(faces, labels):
 	print("[INFO] training classifier...")
 	model = SVC(kernel="rbf", C=10.0, gamma=0.001, random_state=42)
 	model.fit(trainX, trainY)
-	return model
-
-# # evaluate the model
-# print("[INFO] evaluating model...")
-# predictions = model.predict(pca.transform(testX))
-# print(classification_report(testY, predictions,
-# 	target_names=le.classes_))
-#
-# # generate a sample of testing data
-# idxs = np.random.choice(range(0, len(testY)), size=10, replace=False)
-#
-# # loop over a sample of the testing data
-# for i in idxs:
-# 	# grab the predicted name and actual name
-# 	predName = le.inverse_transform([predictions[i]])[0]
-# 	actualName = le.classes_[testY[i]]
-#
-# 	# grab the face image and resize it such that we can easily see
-# 	# it on our screen
-# 	face = np.dstack([origTest[i]] * 3)
-# 	face = imutils.resize(face, width=250)
-#
-# 	# draw the predicted name and actual name on the image
-# 	cv2.putText(face, "pred: {}".format(predName), (5, 25),
-# 		cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-# 	cv2.putText(face, "actual: {}".format(actualName), (5, 60),
-# 		cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
-#
-# 	# display the predicted name  and actual name
-# 	print("[INFO] prediction: {}, actual: {}".format(
-# 		predName, actualName))
-#
-# 	# display the current face to our screen
-# 	cv2.imshow("Face", face)
-# 	cv2.waitKey(0)
+	return model, pca, le
 
 name = ""
+model_ = None
+pca_ = None
+le_ = None
+
 while True:
 	ret, frame = cap.read()
 	width = int(frame.shape[1] * 40 / 100)
@@ -142,6 +112,11 @@ while True:
 			cv2.rectangle(face_color, (ex, ey), (ex + ew, ey + eh), (255, 0, 0), 2)
 		for (sx, sy, sw, sh) in smiles:
 			cv2.rectangle(face_color, (sx, sy), (sx + sw, sy + sh), (0, 0, 255), 2)
+		if(model_):
+			test = np.array([cv2.resize(FACE_GRAY, (47, 62)).flatten()]) #.reshape(1, -1)
+			predictions = model_.predict(pca_.transform(test))
+			predName = le_.inverse_transform([predictions[0]])[0]
+			cv2.putText(frame, predName, (x,y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
 	cv2.imshow('frame', frame)
 
@@ -155,13 +130,19 @@ while True:
 			# faceROI = frame[face[0,0]:face[0,1], face[0,2]:face[0,3]]
 			faceROI = cv2.resize(FACE_GRAY, (47, 62))
 			# faceROI = cv2.cvtColor(faceROI, cv2.COLOR_BGR2GRAY)
-			faces_ = np.array(list(faces_).append(faceROI))
+			faces_ = list(faces_)
+			faces_.append(faceROI)
+			faces_ = np.array(faces_)
+
+			labels_ = list(labels_)
+			labels_.append(name)
+			labels_ = np.array(labels_)
 			print("samle get")
-			labels_ = np.array(labels_.tolist().append(name))
 		else:
 			print("enter label first")
 	if cv2.waitKey(1) == ord('t'):
 		print("train placeholder")
+		model_, pca_, le_  = train_model(faces_, labels_)
 		name = ""
 
 	# fin = edges(face_gray)
